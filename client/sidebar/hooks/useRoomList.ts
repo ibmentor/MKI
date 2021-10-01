@@ -98,7 +98,11 @@ export const useRoomList = (): Array<ISubscription> => {
 			sidebarGroupByType && channels.size && groups.set('Channels', channels);
 			sidebarGroupByType && direct.size && groups.set('Direct_Messages', direct);
 			!sidebarGroupByType && groups.set('Conversations', conversation);
-			return [...groups.entries()].flatMap(([key, group]) => [key, ...group]);
+			// return [...groups.entries()].flatMap(([key, group]) => [key, ...group]);
+			return [...groups.entries()].map(([key, group]) => ({
+				title: key,
+				data: [...group],
+			}));
 		});
 	}, [
 		rooms,
