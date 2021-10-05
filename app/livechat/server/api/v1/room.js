@@ -11,6 +11,66 @@ import { Livechat } from '../../lib/Livechat';
 import { normalizeTransferredByData } from '../../lib/Helper';
 import { findVisitorInfo } from '../lib/visitors';
 import { OmnichannelSourceType } from '../../../../../definition/IRoom';
+import { Users } from '../../../../models/server';
+import { getDefaultUserFields } from '../../../../utils/server/functions/getDefaultUserFields';
+import { addUserToRoom } from '../../../../lib/server/functions/addUserToRoom';
+
+API.v1.addRoute('livechat/room/add', { authRequired: true }, {
+	post() {
+		const fields = getDefaultUserFields();
+		const user = Users.findOneById(this.userId, { fields });
+
+		const defaultCheckParams = {
+			rid: Match.Maybe(String),
+			agentId: Match.Maybe(String),
+		};
+
+		const extraCheckParams = onCheckRoomParams(defaultCheckParams);
+		check(this.queryParams, extraCheckParams);
+		const { rid: roomId, agentId, ...extraParams } = this.queryParams;
+		const token = user._id;
+		// const guest = findGuest(token);
+		const guest = user;
+
+		let room;
+		if (!roomId) {
+			room = LivechatRooms.findOneOpenByVisitorToken(token, {});
+			if (room) {
+				return API.v1.success({ room, newRoom: false });
+			}
+
+			let agent;
+			const agentObj = agentId && findAgent(agentId);
+			if (agentObj) {
+				const { username } = agentObj;
+				agent = { agentId, username };
+			}
+
+			const rid = Random.id();
+			const roomInfo = {
+				source: {
+					type: this.isWidget() ? OmnichannelSourceType.WIDGET : OmnichannelSourceType.API,
+				},
+			};
+
+			room = Promise.await(getRoom({ guest, rid, agent, roomInfo, extraParams }));
+
+			addUserToRoom(room.room._id, user, user);
+			return API.v1.success(room);
+		}
+
+		room = LivechatRooms.findOneOpenByRoomIdAndVisitorToken(roomId, token, {});
+		if (!room) {
+			throw new Meteor.Error('invalid-room');
+		}
+
+		addUserToRoom(room.room._id, user, user);
+
+		return API.v1.success({ room, newRoom: false });
+
+		// return API.v1.success({ ...user });
+	},
+});
 
 API.v1.addRoute('livechat/room', {
 	get() {
