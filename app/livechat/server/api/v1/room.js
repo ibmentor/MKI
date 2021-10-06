@@ -4,7 +4,7 @@ import { Random } from 'meteor/random';
 import { TAPi18n } from 'meteor/rocketchat:tap-i18n';
 
 import { settings as rcSettings } from '../../../../settings';
-import { Messages, LivechatRooms } from '../../../../models';
+import { Messages, LivechatRooms, LivechatVisitors } from '../../../../models';
 import { API } from '../../../../api/server';
 import { findGuest, findRoom, getRoom, settings, findAgent, onCheckRoomParams } from '../lib/livechat';
 import { Livechat } from '../../lib/Livechat';
@@ -30,7 +30,9 @@ API.v1.addRoute('livechat/room/add', { authRequired: true }, {
 		const { rid: roomId, agentId, ...extraParams } = this.queryParams;
 		const token = user._id;
 		// const guest = findGuest(token);
-		const guest = user;
+		// const guest = { ...user, token };
+		const visitorId = Livechat.registerGuest({ ...user, token });
+		const guest = LivechatVisitors.findOneById(visitorId);
 
 		let room;
 		if (!roomId) {

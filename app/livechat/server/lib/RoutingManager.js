@@ -14,7 +14,7 @@ import {
 } from './Helper';
 import { callbacks } from '../../../callbacks/server';
 import { Logger } from '../../../logger';
-import { LivechatRooms, Rooms, Messages, Users, LivechatInquiry, Subscriptions } from '../../../models/server';
+import { LivechatRooms, Rooms, Messages, Users, LivechatInquiry, Subscriptions, LivechatVisitors } from '../../../models/server';
 import { Apps, AppEvents } from '../../../apps/server';
 
 const logger = new Logger('RoutingManager');
@@ -117,11 +117,16 @@ export const RoutingManager = {
 		}
 
 		const { servedBy, responseBy } = room;
+		let ignoreUser;
+		if (responseBy) {
+			const visitor = LivechatVisitors.findOne({ _id: responseBy._id });
+			ignoreUser = { _id: visitor.token };
+		}
 
 		if (servedBy) {
 			logger.debug(`Unassigning current agent for inquiry ${ inquiry._id }`);
 			LivechatRooms.removeAgentByRoomId(rid);
-			this.removeAllRoomSubscriptions(room, responseBy);
+			this.removeAllRoomSubscriptions(room, ignoreUser);
 			dispatchAgentDelegated(rid, null);
 		}
 
