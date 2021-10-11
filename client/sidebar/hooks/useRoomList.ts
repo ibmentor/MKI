@@ -81,7 +81,7 @@ export const useRoomList = (): Array<ISubscription> => {
 			});
 
 			const groups = new Map();
-			showOmnichannel && groups.set('Omnichannel', []);
+			showOmnichannel && groups.set('Omnichannel', null);
 			showOmnichannel &&
 				inquiries.enabled &&
 				queue.length &&
@@ -99,10 +99,14 @@ export const useRoomList = (): Array<ISubscription> => {
 			sidebarGroupByType && direct.size && groups.set('Direct_Messages', direct);
 			!sidebarGroupByType && groups.set('Conversations', conversation);
 			// return [...groups.entries()].flatMap(([key, group]) => [key, ...group]);
-			return [...groups.entries()].map(([key, group]) => ({
-				title: key,
-				data: [...group],
-			}));
+			return [...groups.entries()].map(([key, group]) => {
+				if (!group) return key;
+
+				return {
+					title: key,
+					data: [...group],
+				};
+			});
 		});
 	}, [
 		rooms,
